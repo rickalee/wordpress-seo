@@ -98,7 +98,6 @@ class Settings_Integration implements Integration_Interface {
 			'deny_ccbot_crawling',
 			'deny_google_extended_crawling',
 			'deny_gptbot_crawling',
-			'enable_llms_txt',
 		],
 	];
 
