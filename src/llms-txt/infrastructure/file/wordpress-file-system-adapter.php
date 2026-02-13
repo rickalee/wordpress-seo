@@ -7,17 +7,28 @@ use Yoast\WP\SEO\Llms_Txt\Domain\File\Llms_File_System_Interface;
 
 /**
  * Adapter class for handling file system operations in a WordPress environment.
+ *
+ * On multisite installations, this adapter uses dynamic generation via rewrite
+ * rules instead of physical file creation to avoid permission issues.
  */
 class WordPress_File_System_Adapter implements Llms_File_System_Interface {
 
 	/**
 	 * Creates a file and writes the specified content to it.
 	 *
+	 * On multisite, this returns true without creating a physical file since
+	 * dynamic generation is used instead.
+	 *
 	 * @param string $content The content to write into the file.
 	 *
 	 * @return bool True on success, false on failure.
 	 */
 	public function set_file_content( string $content ): bool {
+		// On multisite, use dynamic generation instead of physical files.
+		if ( $this->should_use_dynamic_generation() ) {
+			return true;
+		}
+
 		if ( $this->is_file_system_available() ) {
 			global $wp_filesystem;
 			$result = $wp_filesystem->put_contents(
@@ -35,9 +46,17 @@ class WordPress_File_System_Adapter implements Llms_File_System_Interface {
 	/**
 	 * Removes the llms.txt from the filesystem.
 	 *
+	 * On multisite, this returns true without removing a physical file since
+	 * dynamic generation is used instead.
+	 *
 	 * @return bool True on success, false on failure.
 	 */
 	public function remove_file(): bool {
+		// On multisite, use dynamic generation instead of physical files.
+		if ( $this->should_use_dynamic_generation() ) {
+			return true;
+		}
+
 		if ( $this->is_file_system_available() ) {
 			global $wp_filesystem;
 			$result = $wp_filesystem->delete( $this->get_llms_file_path() );
@@ -51,9 +70,16 @@ class WordPress_File_System_Adapter implements Llms_File_System_Interface {
 	/**
 	 * Gets the contents of the current llms.txt file.
 	 *
+	 * On multisite, this returns an empty string since dynamic generation is used.
+	 *
 	 * @return string The content of the file.
 	 */
 	public function get_file_contents(): string {
+		// On multisite, use dynamic generation instead of physical files.
+		if ( $this->should_use_dynamic_generation() ) {
+			return '';
+		}
+
 		if ( $this->is_file_system_available() ) {
 			global $wp_filesystem;
 
@@ -66,9 +92,17 @@ class WordPress_File_System_Adapter implements Llms_File_System_Interface {
 	/**
 	 * Checks if the llms.txt file exists.
 	 *
+	 * On multisite, this returns false since dynamic generation is used instead
+	 * of physical files.
+	 *
 	 * @return bool Whether the llms.txt file exists.
 	 */
 	public function file_exists(): bool {
+		// On multisite, use dynamic generation instead of physical files.
+		if ( $this->should_use_dynamic_generation() ) {
+			return false;
+		}
+
 		if ( $this->is_file_system_available() ) {
 			global $wp_filesystem;
 
@@ -114,5 +148,22 @@ class WordPress_File_System_Adapter implements Llms_File_System_Interface {
 		$llms_filesystem_path = \apply_filters( 'wpseo_llmstxt_filesystem_path', $llms_filesystem_path );
 
 		return \trailingslashit( $llms_filesystem_path ) . 'llms.txt';
+	}
+
+	/**
+	 * Determines if dynamic generation should be used instead of physical files.
+	 *
+	 * Dynamic generation via rewrite rules is used on multisite installations to
+	 * avoid file permission issues and to allow per-site llms.txt content.
+	 *
+	 * @return bool True if dynamic generation should be used.
+	 */
+	private function should_use_dynamic_generation(): bool {
+		/**
+		 * Filter: 'wpseo_llmstxt_use_dynamic_generation' - Allows forcing dynamic generation on/off.
+		 *
+		 * @param bool $use_dynamic True to use dynamic generation, false to use physical files.
+		 */
+		return \apply_filters( 'wpseo_llmstxt_use_dynamic_generation', \is_multisite() );
 	}
 }

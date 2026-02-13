@@ -112,9 +112,12 @@ class Enable_Llms_Txt extends Abstract_Completeable_Task {
 	/**
 	 * Returns whether the task is valid.
 	 *
+	 * The task is now valid on both single-site and multisite installations.
+	 * Multisite uses dynamic generation via rewrite rules instead of physical files.
+	 *
 	 * @return bool
 	 */
 	public function is_valid(): bool {
-		return ! \is_multisite();
+		return true;
 	}
 }
